@@ -298,17 +298,6 @@ export default function HomePage() {
                     key={row.id}
                     className="group flex min-h-14 flex-col gap-3 border-b border-gray-100 px-4 py-3 transition-all duration-150 hover:translate-x-[2px] hover:bg-gray-50 sm:flex-row sm:items-center"
                   >
-                    <div
-                      className={`h-10 w-1 rounded-full ${
-                        row.positiveResponse
-                          ? "bg-green-500"
-                          : row.replied
-                          ? "bg-blue-500"
-                          : row.emailSent
-                          ? "bg-amber-400"
-                          : "bg-gray-300"
-                      }`}
-                    />
 
                     <div className="min-w-0 flex-1">
                       {editingId === row.id ? (
@@ -343,15 +332,28 @@ export default function HomePage() {
                           >
                             {row.kindergartenName}
                           </p>
-                          <p
-                            className={`text-sm break-all whitespace-normal ${
-                              row.positiveResponse
-                                ? "text-gray-400 line-through"
-                                : "text-gray-500"
-                            }`}
-                          >
-                            {row.email} · {row.city}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className={`h-5 w-1 shrink-0 rounded-full ${
+                                row.positiveResponse
+                                  ? "bg-green-500"
+                                  : row.replied
+                                  ? "bg-blue-500"
+                                  : row.emailSent
+                                  ? "bg-amber-400"
+                                  : "bg-gray-300"
+                              }`}
+                            />
+                            <p
+                              className={`text-sm break-all whitespace-normal ${
+                                row.positiveResponse
+                                  ? "text-gray-400 line-through"
+                                  : "text-gray-500"
+                              }`}
+                            >
+                              {row.email} · {row.city}
+                            </p>
+                          </div>
                         </>
                       )}
                     </div>

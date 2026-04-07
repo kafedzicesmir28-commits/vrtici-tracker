@@ -1,1 +1,11 @@
-[]
+[
+  {
+    "id": "3292da68-adcc-434f-b4b5-74d7db9ce327",
+    "email": "test@fd.com",
+    "kindergartenName": "ters",
+    "city": "tea",
+    "emailSent": true,
+    "replied": false,
+    "positiveResponse": false
+  }
+]
