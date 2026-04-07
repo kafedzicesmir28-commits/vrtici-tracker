@@ -1,1 +1,34 @@
-[]
+[
+  {
+    "id": "266d2e83-9609-41b3-a07a-7e421debc456",
+    "email": "test@example.com",
+    "kindergartenName": "Test Vrtic",
+    "emailSent": false,
+    "replied": false,
+    "positiveResponse": false
+  },
+  {
+    "id": "08bba530-4323-4e06-b468-ba2479f07f40",
+    "email": "test@f.com",
+    "kindergartenName": "sda",
+    "emailSent": false,
+    "replied": false,
+    "positiveResponse": false
+  },
+  {
+    "id": "6962c109-c9f4-4a9f-844b-76c804d191ea",
+    "email": "test@example.com",
+    "kindergartenName": "Test Vrtic",
+    "emailSent": false,
+    "replied": false,
+    "positiveResponse": false
+  },
+  {
+    "id": "1bb70bd4-3be9-4d16-a2b6-296b050b163b",
+    "email": "qa3@example.com",
+    "kindergartenName": "QA3 Vrtic",
+    "emailSent": false,
+    "replied": false,
+    "positiveResponse": false
+  }
+]

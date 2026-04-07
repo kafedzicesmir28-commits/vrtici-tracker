@@ -112,35 +112,62 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$kindergarten$2d$store
 ;
 ;
 async function GET() {
-    const rows = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$kindergarten$2d$store$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["readKindergartens"])();
-    return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json(rows);
+    try {
+        const rows = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$kindergarten$2d$store$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["readKindergartens"])();
+        return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json(rows);
+    } catch  {
+        return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
+            message: "Greška pri učitavanju."
+        }, {
+            status: 500
+        });
+    }
 }
 async function POST(request) {
-    const body = await request.json();
-    const email = typeof body.email === "string" ? body.email.trim() : "";
-    const kindergartenName = typeof body.kindergartenName === "string" ? body.kindergartenName.trim() : "";
-    if (!email || !kindergartenName) {
+    let body;
+    try {
+        body = await request.json();
+    } catch  {
         return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
-            message: "Neispravan unos."
+            message: "Neispravan JSON body."
         }, {
             status: 400
         });
     }
-    const rows = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$kindergarten$2d$store$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["readKindergartens"])();
-    const newRow = {
-        id: crypto.randomUUID(),
-        email,
-        kindergartenName,
-        emailSent: false,
-        replied: false,
-        positiveResponse: false
-    };
-    const updated = [
-        ...rows,
-        newRow
-    ];
-    await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$kindergarten$2d$store$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["writeKindergartens"])(updated);
-    return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json(updated);
+    try {
+        const email = typeof body.email === "string" ? body.email.trim() : "";
+        const kindergartenName = typeof body.kindergartenName === "string" ? body.kindergartenName.trim() : "";
+        if (!email || !kindergartenName) {
+            return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
+                message: "Neispravan unos."
+            }, {
+                status: 400
+            });
+        }
+        const rows = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$kindergarten$2d$store$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["readKindergartens"])();
+        const generatedId = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+        const newRow = {
+            id: generatedId,
+            email,
+            kindergartenName,
+            emailSent: false,
+            replied: false,
+            positiveResponse: false
+        };
+        const updated = [
+            ...rows,
+            newRow
+        ];
+        await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$kindergarten$2d$store$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["writeKindergartens"])(updated);
+        return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json(updated);
+    } catch (error) {
+        console.error("POST /api/kindergartens failed:", error);
+        return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
+            message: "Greška pri spremanju."
+        }, {
+            status: 500
+        });
+    }
 }
 }),
 ];
