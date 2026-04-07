@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import ExportButton from "@/components/ExportButton";
 import FilterBar, { FilterType } from "@/components/FilterBar";
@@ -24,23 +24,23 @@ export default function HomePage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
 
-  const loadRows = async () => {
+  const loadRows = useCallback(async () => {
     const response = await fetch("/api/kindergartens", { cache: "no-store" });
     if (!response.ok) return;
     const data = (await response.json()) as KindergartenRecord[];
     setRows(data);
-  };
+  }, []);
 
   useEffect(() => {
     void loadRows();
-  }, []);
+  }, [loadRows]);
 
   useEffect(() => {
     const interval = setInterval(() => {
       void loadRows();
     }, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [loadRows]);
 
   useEffect(() => {
     const timer = setTimeout(() => {

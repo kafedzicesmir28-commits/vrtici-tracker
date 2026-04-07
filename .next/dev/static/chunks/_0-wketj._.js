@@ -192,19 +192,23 @@ function HomePage() {
     const [searchInput, setSearchInput] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])("");
     const [debouncedSearch, setDebouncedSearch] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])("");
     const [activeFilter, setActiveFilter] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])("all");
-    const loadRows = async ()=>{
-        const response = await fetch("/api/kindergartens", {
-            cache: "no-store"
-        });
-        if (!response.ok) return;
-        const data = await response.json();
-        setRows(data);
-    };
+    const loadRows = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useCallback"])({
+        "HomePage.useCallback[loadRows]": async ()=>{
+            const response = await fetch("/api/kindergartens", {
+                cache: "no-store"
+            });
+            if (!response.ok) return;
+            const data = await response.json();
+            setRows(data);
+        }
+    }["HomePage.useCallback[loadRows]"], []);
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
         "HomePage.useEffect": ()=>{
             void loadRows();
         }
-    }["HomePage.useEffect"], []);
+    }["HomePage.useEffect"], [
+        loadRows
+    ]);
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
         "HomePage.useEffect": ()=>{
             const interval = setInterval({
@@ -216,7 +220,9 @@ function HomePage() {
                 "HomePage.useEffect": ()=>clearInterval(interval)
             })["HomePage.useEffect"];
         }
-    }["HomePage.useEffect"], []);
+    }["HomePage.useEffect"], [
+        loadRows
+    ]);
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
         "HomePage.useEffect": ()=>{
             const timer = setTimeout({
@@ -679,7 +685,7 @@ function HomePage() {
         columnNumber: 5
     }, this);
 }
-_s(HomePage, "nggRFzd9vjDnP1+15pgsxvD9X/k=");
+_s(HomePage, "sTmrwRE2SmL5n2HaqvC+B+MhXag=");
 _c = HomePage;
 var _c;
 __turbopack_context__.k.register(_c, "HomePage");
