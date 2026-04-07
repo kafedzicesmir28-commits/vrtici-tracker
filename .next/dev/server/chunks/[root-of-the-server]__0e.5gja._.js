@@ -66,8 +66,9 @@ var __TURBOPACK__imported__module__$5b$externals$5d2f$fs$2f$promises__$5b$extern
 var __TURBOPACK__imported__module__$5b$externals$5d2f$path__$5b$external$5d$__$28$path$2c$__cjs$29$__ = __turbopack_context__.i("[externals]/path [external] (path, cjs)");
 ;
 ;
-const dataDir = __TURBOPACK__imported__module__$5b$externals$5d2f$path__$5b$external$5d$__$28$path$2c$__cjs$29$__["default"].join(process.cwd(), "data");
+const dataDir = process.env.VERCEL ? __TURBOPACK__imported__module__$5b$externals$5d2f$path__$5b$external$5d$__$28$path$2c$__cjs$29$__["default"].join("/tmp", "vrtici-tracker") : __TURBOPACK__imported__module__$5b$externals$5d2f$path__$5b$external$5d$__$28$path$2c$__cjs$29$__["default"].join(process.cwd(), "data");
 const dataFile = __TURBOPACK__imported__module__$5b$externals$5d2f$path__$5b$external$5d$__$28$path$2c$__cjs$29$__["default"].join(dataDir, "kindergartens.json");
+let memoryFallback = [];
 function isValidRecord(value) {
     if (typeof value !== "object" || value === null) return false;
     const record = value;
@@ -84,18 +85,25 @@ async function ensureStoreFile() {
     }
 }
 async function readKindergartens() {
-    await ensureStoreFile();
-    const raw = await (0, __TURBOPACK__imported__module__$5b$externals$5d2f$fs$2f$promises__$5b$external$5d$__$28$fs$2f$promises$2c$__cjs$29$__["readFile"])(dataFile, "utf8");
     try {
+        await ensureStoreFile();
+        const raw = await (0, __TURBOPACK__imported__module__$5b$externals$5d2f$fs$2f$promises__$5b$external$5d$__$28$fs$2f$promises$2c$__cjs$29$__["readFile"])(dataFile, "utf8");
         const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed.filter(isValidRecord) : [];
+        const safeRows = Array.isArray(parsed) ? parsed.filter(isValidRecord) : [];
+        memoryFallback = safeRows;
+        return safeRows;
     } catch  {
-        return [];
+        return memoryFallback;
     }
 }
 async function writeKindergartens(rows) {
-    await ensureStoreFile();
-    await (0, __TURBOPACK__imported__module__$5b$externals$5d2f$fs$2f$promises__$5b$external$5d$__$28$fs$2f$promises$2c$__cjs$29$__["writeFile"])(dataFile, JSON.stringify(rows, null, 2), "utf8");
+    try {
+        await ensureStoreFile();
+        await (0, __TURBOPACK__imported__module__$5b$externals$5d2f$fs$2f$promises__$5b$external$5d$__$28$fs$2f$promises$2c$__cjs$29$__["writeFile"])(dataFile, JSON.stringify(rows, null, 2), "utf8");
+        memoryFallback = rows;
+    } catch  {
+        memoryFallback = rows;
+    }
 }
 }),
 "[project]/app/api/kindergartens/route.ts [app-route] (ecmascript)", ((__turbopack_context__) => {

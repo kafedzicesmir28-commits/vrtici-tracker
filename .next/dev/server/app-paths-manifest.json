@@ -1,4 +1,5 @@
 {
+  "/api/kindergartens/[id]/route": "app/api/kindergartens/[id]/route.js",
   "/api/kindergartens/route": "app/api/kindergartens/route.js",
   "/page": "app/page.js"
 }
