@@ -15,21 +15,6 @@ type KindergartenRecord = {
   positiveResponse: boolean;
 };
 
-const STORAGE_KEY = "kindergarten-tracker";
-
-function isValidRecord(value: unknown): value is KindergartenRecord {
-  if (typeof value !== "object" || value === null) return false;
-  const record = value as Record<string, unknown>;
-  return (
-    typeof record.id === "string" &&
-    typeof record.email === "string" &&
-    typeof record.kindergartenName === "string" &&
-    typeof record.emailSent === "boolean" &&
-    typeof record.replied === "boolean" &&
-    typeof record.positiveResponse === "boolean"
-  );
-}
-
 export default function HomePage() {
   const [rows, setRows] = useState<KindergartenRecord[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -39,22 +24,23 @@ export default function HomePage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
 
+  const loadRows = async () => {
+    const response = await fetch("/api/kindergartens", { cache: "no-store" });
+    if (!response.ok) return;
+    const data = (await response.json()) as KindergartenRecord[];
+    setRows(data);
+  };
+
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) return;
-    try {
-      const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed)) {
-        setRows(parsed.filter(isValidRecord));
-      }
-    } catch {
-      setRows([]);
-    }
+    void loadRows();
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
-  }, [rows]);
+    const interval = setInterval(() => {
+      void loadRows();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -99,40 +85,55 @@ export default function HomePage() {
     });
   }, [rows, debouncedSearch, activeFilter]);
 
-  const addKindergarten = (event: FormEvent<HTMLFormElement>) => {
+  const addKindergarten = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmedEmail = email.trim();
     const trimmedName = kindergartenName.trim();
     if (!trimmedEmail || !trimmedName) return;
 
-    const newRecord: KindergartenRecord = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      email: trimmedEmail,
-      kindergartenName: trimmedName,
-      emailSent: false,
-      replied: false,
-      positiveResponse: false
-    };
-
-    setRows((prev) => [...prev, newRecord]);
+    const response = await fetch("/api/kindergartens", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: trimmedEmail,
+        kindergartenName: trimmedName
+      })
+    });
+    if (!response.ok) return;
+    const updated = (await response.json()) as KindergartenRecord[];
+    setRows(updated);
     setEmail("");
     setKindergartenName("");
     setShowForm(false);
   };
 
-  const toggleField = (
+  const toggleField = async (
     id: string,
     field: "emailSent" | "replied" | "positiveResponse"
   ) => {
-    setRows((prev) =>
-      prev.map((row) =>
-        row.id === id ? { ...row, [field]: !row[field] } : row
-      )
-    );
+    const target = rows.find((row) => row.id === id);
+    if (!target) return;
+
+    const response = await fetch(`/api/kindergartens/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        field,
+        value: !target[field]
+      })
+    });
+    if (!response.ok) return;
+    const updated = (await response.json()) as KindergartenRecord[];
+    setRows(updated);
   };
 
-  const deleteRow = (id: string) => {
-    setRows((prev) => prev.filter((row) => row.id !== id));
+  const deleteRow = async (id: string) => {
+    const response = await fetch(`/api/kindergartens/${id}`, {
+      method: "DELETE"
+    });
+    if (!response.ok) return;
+    const updated = (await response.json()) as KindergartenRecord[];
+    setRows(updated);
   };
 
   const getStatusBadge = (row: KindergartenRecord) => {

@@ -1,5 +1,7 @@
 {
   "/_global-error/page": "/_global-error",
   "/_not-found/page": "/_not-found",
+  "/api/kindergartens/[id]/route": "/api/kindergartens/[id]",
+  "/api/kindergartens/route": "/api/kindergartens",
   "/page": "/"
 }
