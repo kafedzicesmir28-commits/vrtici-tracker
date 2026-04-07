@@ -13,7 +13,7 @@ export default function SearchBar({ value, onChange }: SearchBarProps) {
         type="text"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        placeholder="Pretraži vrtić ili email..."
+        placeholder="Pretraži vrtić, email ili grad..."
         className="h-10 w-full rounded-lg border border-gray-200 bg-white px-4 py-2 pl-10 text-sm text-gray-700 outline-none transition-all duration-150 placeholder:text-gray-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20"
       />
     </div>

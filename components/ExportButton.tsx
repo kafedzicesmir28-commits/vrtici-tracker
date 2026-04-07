@@ -7,6 +7,7 @@ type KindergartenRecord = {
   id: string;
   email: string;
   kindergartenName: string;
+  city: string;
   emailSent: boolean;
   replied: boolean;
   positiveResponse: boolean;
@@ -21,6 +22,7 @@ export default function ExportButton({ rows }: ExportButtonProps) {
     const exportData = rows.map((row) => ({
       Email: row.email,
       "Ime vrtića": row.kindergartenName,
+      Grad: row.city,
       "Mail poslan": row.emailSent ? "Da" : "Ne",
       Odgovorili: row.replied ? "Da" : "Ne",
       "Pozitivan odgovor": row.positiveResponse ? "Da" : "Ne"

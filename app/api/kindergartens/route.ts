@@ -28,8 +28,9 @@ export async function POST(request: NextRequest) {
       typeof body.kindergartenName === "string"
         ? body.kindergartenName.trim()
         : "";
+    const city = typeof body.city === "string" ? body.city.trim() : "";
 
-    if (!email || !kindergartenName) {
+    if (!email || !kindergartenName || !city) {
       return NextResponse.json({ message: "Neispravan unos." }, { status: 400 });
     }
 
@@ -42,6 +43,7 @@ export async function POST(request: NextRequest) {
       id: generatedId,
       email,
       kindergartenName,
+      city,
       emailSent: false,
       replied: false,
       positiveResponse: false

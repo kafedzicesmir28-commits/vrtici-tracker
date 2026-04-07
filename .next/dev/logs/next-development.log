@@ -5,3 +5,7 @@
 {"timestamp":"00:00:01.028","source":"Browser","level":"ERROR","message":"The final argument passed to useEffect changed size between renders. The order and size of this array must remain constant.\n\nPrevious: []\nIncoming: [] \"\\n    at HomePage (app/page.tsx:36:3)\\n    at S.scheduleRefresh (chrome-extension://fmkadmapgofadopljbjfkapdkoienihi/build/installHook.js:1:86461)\\n    at Set.forEach (<anonymous>)\\n  34 |   useEffect(() => {\\n  35 |     void loadRows();\\n> 36 |   }, [loadRows]);\\n     |   ^\\n  37 |\\n  38 |   useEffect(() => {\\n  39 |     const interval = setInterval(() => {\" \"(app/page.tsx:36:3)\""}
 {"timestamp":"00:00:01.518","source":"Browser","level":"INFO","message":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"}
 {"timestamp":"00:00:01.529","source":"Browser","level":"INFO","message":"%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"}
+{"timestamp":"00:13:49.914","source":"Server","level":"LOG","message":"✓ Compiled in 18ms"}
+{"timestamp":"00:13:59.094","source":"Server","level":"LOG","message":"✓ Compiled in 34ms"}
+{"timestamp":"00:14:03.948","source":"Server","level":"LOG","message":"✓ Compiled in 18ms"}
+{"timestamp":"00:16:05.816","source":"Server","level":"LOG","message":"✓ Compiled in 48ms"}

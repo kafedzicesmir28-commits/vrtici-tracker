@@ -6,39 +6,57 @@ import {
 } from "@/lib/kindergarten-store";
 
 type BooleanField = "emailSent" | "replied" | "positiveResponse";
+type PatchBody = {
+  field?: BooleanField;
+  value?: boolean;
+  email?: string;
+  kindergartenName?: string;
+  city?: string;
+};
 
 export async function PATCH(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  let body: {
-    field?: BooleanField;
-    value?: boolean;
-  };
+  let body: PatchBody;
   try {
-    body = (await request.json()) as {
-      field?: BooleanField;
-      value?: boolean;
-    };
+    body = (await request.json()) as PatchBody;
   } catch {
     return NextResponse.json({ message: "Neispravan JSON body." }, { status: 400 });
   }
 
   try {
     const { id } = await context.params;
+    const rows = await readKindergartens();
 
-    if (
-      (body.field !== "emailSent" &&
-        body.field !== "replied" &&
-        body.field !== "positiveResponse") ||
-      typeof body.value !== "boolean"
-    ) {
+    if ("field" in body || "value" in body) {
+      if (
+        (body.field !== "emailSent" &&
+          body.field !== "replied" &&
+          body.field !== "positiveResponse") ||
+        typeof body.value !== "boolean"
+      ) {
+        return NextResponse.json({ message: "Neispravan update." }, { status: 400 });
+      }
+
+      const updated = rows.map((row) =>
+        row.id === id ? { ...row, [body.field as BooleanField]: body.value } : row
+      );
+      await writeKindergartens(updated);
+      return NextResponse.json(updated);
+    }
+
+    const email = typeof body.email === "string" ? body.email.trim() : "";
+    const kindergartenName =
+      typeof body.kindergartenName === "string" ? body.kindergartenName.trim() : "";
+    const city = typeof body.city === "string" ? body.city.trim() : "";
+
+    if (!email || !kindergartenName || !city) {
       return NextResponse.json({ message: "Neispravan update." }, { status: 400 });
     }
 
-    const rows = await readKindergartens();
     const updated = rows.map((row) =>
-      row.id === id ? { ...row, [body.field as BooleanField]: body.value } : row
+      row.id === id ? { ...row, email, kindergartenName, city } : row
     );
     await writeKindergartens(updated);
     return NextResponse.json(updated);

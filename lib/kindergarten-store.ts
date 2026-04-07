@@ -5,6 +5,7 @@ export type KindergartenRecord = {
   id: string;
   email: string;
   kindergartenName: string;
+  city: string;
   emailSent: boolean;
   replied: boolean;
   positiveResponse: boolean;
@@ -16,17 +17,29 @@ const dataDir = process.env.VERCEL
 const dataFile = path.join(dataDir, "kindergartens.json");
 let memoryFallback: KindergartenRecord[] = [];
 
-function isValidRecord(value: unknown): value is KindergartenRecord {
-  if (typeof value !== "object" || value === null) return false;
+function normalizeRecord(value: unknown): KindergartenRecord | null {
+  if (typeof value !== "object" || value === null) return null;
   const record = value as Record<string, unknown>;
-  return (
-    typeof record.id === "string" &&
-    typeof record.email === "string" &&
-    typeof record.kindergartenName === "string" &&
-    typeof record.emailSent === "boolean" &&
-    typeof record.replied === "boolean" &&
-    typeof record.positiveResponse === "boolean"
-  );
+  if (
+    typeof record.id !== "string" ||
+    typeof record.email !== "string" ||
+    typeof record.kindergartenName !== "string" ||
+    typeof record.emailSent !== "boolean" ||
+    typeof record.replied !== "boolean" ||
+    typeof record.positiveResponse !== "boolean"
+  ) {
+    return null;
+  }
+
+  return {
+    id: record.id,
+    email: record.email,
+    kindergartenName: record.kindergartenName,
+    city: typeof record.city === "string" ? record.city : "",
+    emailSent: record.emailSent,
+    replied: record.replied,
+    positiveResponse: record.positiveResponse
+  };
 }
 
 async function ensureStoreFile() {
@@ -43,7 +56,11 @@ export async function readKindergartens(): Promise<KindergartenRecord[]> {
     await ensureStoreFile();
     const raw = await readFile(dataFile, "utf8");
     const parsed = JSON.parse(raw);
-    const safeRows = Array.isArray(parsed) ? parsed.filter(isValidRecord) : [];
+    const safeRows = Array.isArray(parsed)
+      ? parsed
+          .map(normalizeRecord)
+          .filter((row): row is KindergartenRecord => row !== null)
+      : [];
     memoryFallback = safeRows;
     return safeRows;
   } catch {

@@ -69,10 +69,21 @@ var __TURBOPACK__imported__module__$5b$externals$5d2f$path__$5b$external$5d$__$2
 const dataDir = process.env.VERCEL ? __TURBOPACK__imported__module__$5b$externals$5d2f$path__$5b$external$5d$__$28$path$2c$__cjs$29$__["default"].join("/tmp", "vrtici-tracker") : __TURBOPACK__imported__module__$5b$externals$5d2f$path__$5b$external$5d$__$28$path$2c$__cjs$29$__["default"].join(process.cwd(), "data");
 const dataFile = __TURBOPACK__imported__module__$5b$externals$5d2f$path__$5b$external$5d$__$28$path$2c$__cjs$29$__["default"].join(dataDir, "kindergartens.json");
 let memoryFallback = [];
-function isValidRecord(value) {
-    if (typeof value !== "object" || value === null) return false;
+function normalizeRecord(value) {
+    if (typeof value !== "object" || value === null) return null;
     const record = value;
-    return typeof record.id === "string" && typeof record.email === "string" && typeof record.kindergartenName === "string" && typeof record.emailSent === "boolean" && typeof record.replied === "boolean" && typeof record.positiveResponse === "boolean";
+    if (typeof record.id !== "string" || typeof record.email !== "string" || typeof record.kindergartenName !== "string" || typeof record.emailSent !== "boolean" || typeof record.replied !== "boolean" || typeof record.positiveResponse !== "boolean") {
+        return null;
+    }
+    return {
+        id: record.id,
+        email: record.email,
+        kindergartenName: record.kindergartenName,
+        city: typeof record.city === "string" ? record.city : "",
+        emailSent: record.emailSent,
+        replied: record.replied,
+        positiveResponse: record.positiveResponse
+    };
 }
 async function ensureStoreFile() {
     await (0, __TURBOPACK__imported__module__$5b$externals$5d2f$fs$2f$promises__$5b$external$5d$__$28$fs$2f$promises$2c$__cjs$29$__["mkdir"])(dataDir, {
@@ -89,7 +100,7 @@ async function readKindergartens() {
         await ensureStoreFile();
         const raw = await (0, __TURBOPACK__imported__module__$5b$externals$5d2f$fs$2f$promises__$5b$external$5d$__$28$fs$2f$promises$2c$__cjs$29$__["readFile"])(dataFile, "utf8");
         const parsed = JSON.parse(raw);
-        const safeRows = Array.isArray(parsed) ? parsed.filter(isValidRecord) : [];
+        const safeRows = Array.isArray(parsed) ? parsed.map(normalizeRecord).filter((row)=>row !== null) : [];
         memoryFallback = safeRows;
         return safeRows;
     } catch  {
@@ -132,17 +143,37 @@ async function PATCH(request, context) {
     }
     try {
         const { id } = await context.params;
-        if (body.field !== "emailSent" && body.field !== "replied" && body.field !== "positiveResponse" || typeof body.value !== "boolean") {
+        const rows = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$kindergarten$2d$store$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["readKindergartens"])();
+        if ("field" in body || "value" in body) {
+            if (body.field !== "emailSent" && body.field !== "replied" && body.field !== "positiveResponse" || typeof body.value !== "boolean") {
+                return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
+                    message: "Neispravan update."
+                }, {
+                    status: 400
+                });
+            }
+            const updated = rows.map((row)=>row.id === id ? {
+                    ...row,
+                    [body.field]: body.value
+                } : row);
+            await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$kindergarten$2d$store$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["writeKindergartens"])(updated);
+            return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json(updated);
+        }
+        const email = typeof body.email === "string" ? body.email.trim() : "";
+        const kindergartenName = typeof body.kindergartenName === "string" ? body.kindergartenName.trim() : "";
+        const city = typeof body.city === "string" ? body.city.trim() : "";
+        if (!email || !kindergartenName || !city) {
             return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
                 message: "Neispravan update."
             }, {
                 status: 400
             });
         }
-        const rows = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$kindergarten$2d$store$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["readKindergartens"])();
         const updated = rows.map((row)=>row.id === id ? {
                 ...row,
-                [body.field]: body.value
+                email,
+                kindergartenName,
+                city
             } : row);
         await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$kindergarten$2d$store$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["writeKindergartens"])(updated);
         return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json(updated);

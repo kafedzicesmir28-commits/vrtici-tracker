@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Save, Trash2, X } from "lucide-react";
 import ExportButton from "@/components/ExportButton";
 import FilterBar, { FilterType } from "@/components/FilterBar";
 import SearchBar from "@/components/SearchBar";
@@ -10,6 +10,7 @@ type KindergartenRecord = {
   id: string;
   email: string;
   kindergartenName: string;
+  city: string;
   emailSent: boolean;
   replied: boolean;
   positiveResponse: boolean;
@@ -20,9 +21,14 @@ export default function HomePage() {
   const [showForm, setShowForm] = useState(false);
   const [email, setEmail] = useState("");
   const [kindergartenName, setKindergartenName] = useState("");
+  const [city, setCity] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editEmail, setEditEmail] = useState("");
+  const [editName, setEditName] = useState("");
+  const [editCity, setEditCity] = useState("");
 
   const loadRows = useCallback(async () => {
     const response = await fetch("/api/kindergartens", { cache: "no-store" });
@@ -66,7 +72,8 @@ export default function HomePage() {
       const matchesSearch =
         debouncedSearch.length === 0 ||
         row.kindergartenName.toLowerCase().includes(debouncedSearch) ||
-        row.email.toLowerCase().includes(debouncedSearch);
+        row.email.toLowerCase().includes(debouncedSearch) ||
+        row.city.toLowerCase().includes(debouncedSearch);
 
       if (!matchesSearch) return false;
 
@@ -89,14 +96,16 @@ export default function HomePage() {
     event.preventDefault();
     const trimmedEmail = email.trim();
     const trimmedName = kindergartenName.trim();
-    if (!trimmedEmail || !trimmedName) return;
+    const trimmedCity = city.trim();
+    if (!trimmedEmail || !trimmedName || !trimmedCity) return;
 
     const response = await fetch("/api/kindergartens", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         email: trimmedEmail,
-        kindergartenName: trimmedName
+        kindergartenName: trimmedName,
+        city: trimmedCity
       })
     });
     if (!response.ok) return;
@@ -104,6 +113,7 @@ export default function HomePage() {
     setRows(updated);
     setEmail("");
     setKindergartenName("");
+    setCity("");
     setShowForm(false);
   };
 
@@ -134,6 +144,41 @@ export default function HomePage() {
     if (!response.ok) return;
     const updated = (await response.json()) as KindergartenRecord[];
     setRows(updated);
+  };
+
+  const startEdit = (row: KindergartenRecord) => {
+    setEditingId(row.id);
+    setEditEmail(row.email);
+    setEditName(row.kindergartenName);
+    setEditCity(row.city);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditEmail("");
+    setEditName("");
+    setEditCity("");
+  };
+
+  const saveEdit = async (id: string) => {
+    const emailValue = editEmail.trim();
+    const nameValue = editName.trim();
+    const cityValue = editCity.trim();
+    if (!emailValue || !nameValue || !cityValue) return;
+
+    const response = await fetch(`/api/kindergartens/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: emailValue,
+        kindergartenName: nameValue,
+        city: cityValue
+      })
+    });
+    if (!response.ok) return;
+    const updated = (await response.json()) as KindergartenRecord[];
+    setRows(updated);
+    cancelEdit();
   };
 
   const getStatusBadge = (row: KindergartenRecord) => {
@@ -197,7 +242,7 @@ export default function HomePage() {
           <section className="border-b border-gray-100 px-4 py-3">
             <form
               onSubmit={addKindergarten}
-              className="grid gap-2 md:grid-cols-[1fr_1fr_auto]"
+              className="grid gap-2 md:grid-cols-[1fr_1fr_1fr_auto]"
             >
               <input
                 type="email"
@@ -212,6 +257,14 @@ export default function HomePage() {
                 value={kindergartenName}
                 onChange={(event) => setKindergartenName(event.target.value)}
                 placeholder="Ime vrtića"
+                className="rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 outline-none transition-all duration-150 placeholder:text-gray-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20"
+                required
+              />
+              <input
+                type="text"
+                value={city}
+                onChange={(event) => setCity(event.target.value)}
+                placeholder="Grad"
                 className="rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 outline-none transition-all duration-150 placeholder:text-gray-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20"
                 required
               />
@@ -243,7 +296,7 @@ export default function HomePage() {
                 return (
                   <article
                     key={row.id}
-                    className="group flex min-h-14 items-center gap-3 border-b border-gray-100 px-4 py-3 transition-all duration-150 hover:translate-x-[2px] hover:bg-gray-50"
+                    className="group flex min-h-14 flex-col gap-3 border-b border-gray-100 px-4 py-3 transition-all duration-150 hover:translate-x-[2px] hover:bg-gray-50 sm:flex-row sm:items-center"
                   >
                     <div
                       className={`h-10 w-1 rounded-full ${
@@ -258,27 +311,52 @@ export default function HomePage() {
                     />
 
                     <div className="min-w-0 flex-1">
-                      <p
-                        className={`truncate text-sm font-semibold ${
-                          row.positiveResponse
-                            ? "text-gray-400 line-through"
-                            : "text-gray-900"
-                        }`}
-                      >
-                        {row.kindergartenName}
-                      </p>
-                      <p
-                        className={`truncate text-sm ${
-                          row.positiveResponse
-                            ? "text-gray-400 line-through"
-                            : "text-gray-500"
-                        }`}
-                      >
-                        {row.email}
-                      </p>
+                      {editingId === row.id ? (
+                        <div className="grid gap-2 sm:grid-cols-3">
+                          <input
+                            value={editName}
+                            onChange={(event) => setEditName(event.target.value)}
+                            placeholder="Ime vrtića"
+                            className="rounded-md border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20"
+                          />
+                          <input
+                            value={editEmail}
+                            onChange={(event) => setEditEmail(event.target.value)}
+                            placeholder="Email"
+                            className="rounded-md border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20"
+                          />
+                          <input
+                            value={editCity}
+                            onChange={(event) => setEditCity(event.target.value)}
+                            placeholder="Grad"
+                            className="rounded-md border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20"
+                          />
+                        </div>
+                      ) : (
+                        <>
+                          <p
+                            className={`text-sm font-semibold ${
+                              row.positiveResponse
+                                ? "text-gray-400 line-through"
+                                : "text-gray-900"
+                            }`}
+                          >
+                            {row.kindergartenName}
+                          </p>
+                          <p
+                            className={`text-sm break-all whitespace-normal ${
+                              row.positiveResponse
+                                ? "text-gray-400 line-through"
+                                : "text-gray-500"
+                            }`}
+                          >
+                            {row.email} · {row.city}
+                          </p>
+                        </>
+                      )}
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
                       <input
                         type="checkbox"
                         checked={row.emailSent}
@@ -313,14 +391,47 @@ export default function HomePage() {
                         : "Novo"}
                     </span>
 
-                    <button
-                      type="button"
-                      onClick={() => deleteRow(row.id)}
-                      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-gray-500 transition-all duration-150 hover:bg-gray-100 hover:text-gray-700 active:scale-95"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Obrisi
-                    </button>
+                    <div className="flex items-center gap-1">
+                      {editingId === row.id ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => saveEdit(row.id)}
+                            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-emerald-600 transition-all duration-150 hover:bg-emerald-50 active:scale-95"
+                          >
+                            <Save className="h-3.5 w-3.5" />
+                            Save
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelEdit}
+                            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-gray-500 transition-all duration-150 hover:bg-gray-100 hover:text-gray-700 active:scale-95"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => startEdit(row)}
+                            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-blue-600 transition-all duration-150 hover:bg-blue-50 active:scale-95"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => deleteRow(row.id)}
+                            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-gray-500 transition-all duration-150 hover:bg-gray-100 hover:text-gray-700 active:scale-95"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Obrisi
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </article>
                 );
               })}
