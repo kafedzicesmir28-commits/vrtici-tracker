@@ -444,6 +444,14 @@ img, video {
   grid-template-columns: minmax(0, 1fr) auto auto auto;
 }
 
+.grid-cols-\[minmax\(0\,1fr\)_minmax\(4\.5rem\,7\.5rem\)_minmax\(4\.5rem\,7\.5rem\)_minmax\(4\.5rem\,7\.5rem\)\] {
+  grid-template-columns: minmax(0, 1fr) minmax(4.5rem, 7.5rem) minmax(4.5rem, 7.5rem) minmax(4.5rem, 7.5rem);
+}
+
+.grid-cols-\[minmax\(0\,1fr\)_90px_90px_90px\] {
+  grid-template-columns: minmax(0, 1fr) 90px 90px 90px;
+}
+
 .flex-col {
   flex-direction: column;
 }
@@ -476,8 +484,17 @@ img, video {
   gap: 1rem;
 }
 
+.gap-x-2 {
+  -moz-column-gap: .5rem;
+  column-gap: .5rem;
+}
+
 .justify-self-start {
   justify-self: start;
+}
+
+.justify-self-center {
+  justify-self: center;
 }
 
 .overflow-hidden {
@@ -500,6 +517,10 @@ img, video {
 
 .whitespace-normal {
   white-space: normal;
+}
+
+.break-words {
+  overflow-wrap: break-word;
 }
 
 .break-all {

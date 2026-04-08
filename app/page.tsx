@@ -295,6 +295,9 @@ export default function HomePage() {
     };
   };
 
+  const checkboxGridClass =
+    "grid min-w-0 grid-cols-[minmax(0,1fr)_90px_90px_90px] items-center gap-x-2";
+
   return (
     <main className="min-h-screen w-full max-w-full overflow-x-hidden bg-gray-50 px-4 py-8 md:px-6">
       <div className="mx-auto w-full max-w-6xl min-w-0 overflow-x-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
@@ -390,15 +393,15 @@ export default function HomePage() {
             </div>
           ) : (
             <div className="min-w-0">
-              <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto_auto] items-center gap-3 border-b border-gray-100 px-4 py-2">
+              <div className={`${checkboxGridClass} border-b border-gray-100 px-4 py-3`}>
                 <div />
-                <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                <span className="text-center text-xs font-medium uppercase tracking-wide text-gray-500">
                   Poslano
                 </span>
-                <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                <span className="text-center text-xs font-medium uppercase tracking-wide text-gray-500">
                   Odgovor
                 </span>
-                <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                <span className="text-center text-xs font-medium uppercase tracking-wide text-gray-500">
                   Anketirano
                 </span>
               </div>
@@ -409,7 +412,7 @@ export default function HomePage() {
                     key={row.id}
                     className="group min-w-0 border-b border-gray-100 px-4 py-3 transition-all duration-150 hover:translate-x-[2px] hover:bg-gray-50"
                   >
-                    <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto] sm:items-center">
+                    <div className={checkboxGridClass}>
                       <div className="min-w-0">
                       {editingId === row.id ? (
                         <div className="grid min-w-0 gap-2 sm:grid-cols-3">
@@ -435,7 +438,7 @@ export default function HomePage() {
                       ) : (
                         <>
                           <p
-                            className={`text-sm font-semibold ${
+                            className={`whitespace-normal break-words text-sm font-semibold ${
                               row.positiveResponse
                                 ? "text-gray-400 line-through"
                                 : "text-gray-900"
@@ -456,12 +459,11 @@ export default function HomePage() {
                               }`}
                             />
                             <p
-                              className={`min-w-0 truncate text-sm ${
+                              className={`min-w-0 whitespace-normal break-all text-sm ${
                                 row.positiveResponse
                                   ? "text-gray-400 line-through"
                                   : "text-gray-500"
                               }`}
-                              title={`${row.email} · ${row.city}`}
                             >
                               {row.email} · {row.city}
                             </p>
@@ -469,27 +471,33 @@ export default function HomePage() {
                         </>
                       )}
                       </div>
-                      <input
-                        type="checkbox"
-                        checked={row.emailSent}
-                        onChange={() => toggleField(row.id, "emailSent")}
-                        className="h-5 w-5 justify-self-start cursor-pointer accent-green-500 transition-transform duration-150 sm:justify-self-center [&:checked]:scale-110"
-                        disabled={isMutating}
-                      />
-                      <input
-                        type="checkbox"
-                        checked={row.replied}
-                        onChange={() => toggleField(row.id, "replied")}
-                        className="h-5 w-5 justify-self-start cursor-pointer accent-green-500 transition-transform duration-150 sm:justify-self-center [&:checked]:scale-110"
-                        disabled={isMutating}
-                      />
-                      <input
-                        type="checkbox"
-                        checked={row.positiveResponse}
-                        onChange={() => toggleField(row.id, "positiveResponse")}
-                        className="h-5 w-5 justify-self-start cursor-pointer accent-green-500 transition-transform duration-150 sm:justify-self-center [&:checked]:scale-110"
-                        disabled={isMutating}
-                      />
+                      <div className="flex items-center justify-center">
+                        <input
+                          type="checkbox"
+                          checked={row.emailSent}
+                          onChange={() => toggleField(row.id, "emailSent")}
+                          className="h-5 w-5 cursor-pointer accent-green-500 transition-transform duration-150 [&:checked]:scale-110"
+                          disabled={isMutating}
+                        />
+                      </div>
+                      <div className="flex items-center justify-center">
+                        <input
+                          type="checkbox"
+                          checked={row.replied}
+                          onChange={() => toggleField(row.id, "replied")}
+                          className="h-5 w-5 cursor-pointer accent-green-500 transition-transform duration-150 [&:checked]:scale-110"
+                          disabled={isMutating}
+                        />
+                      </div>
+                      <div className="flex items-center justify-center">
+                        <input
+                          type="checkbox"
+                          checked={row.positiveResponse}
+                          onChange={() => toggleField(row.id, "positiveResponse")}
+                          className="h-5 w-5 cursor-pointer accent-green-500 transition-transform duration-150 [&:checked]:scale-110"
+                          disabled={isMutating}
+                        />
+                      </div>
                     </div>
 
                     <div className="mt-2 flex min-w-0 flex-wrap items-center gap-1 sm:justify-end">
