@@ -1,6 +1,7 @@
 export type FilterType =
   | "all"
   | "emailSent"
+  | "emailNotSent"
   | "replied"
   | "positive"
   | "noReply";
@@ -13,6 +14,7 @@ type FilterBarProps = {
 const FILTERS: { key: FilterType; label: string }[] = [
   { key: "all", label: "Svi" },
   { key: "emailSent", label: "Mail poslan" },
+  { key: "emailNotSent", label: "Mail nije poslan" },
   { key: "replied", label: "Odgovorili" },
   { key: "positive", label: "Pozitivan odgovor" },
   { key: "noReply", label: "Bez odgovora" }

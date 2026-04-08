@@ -5,6 +5,7 @@ import { Pencil, Plus, Save, Trash2, X } from "lucide-react";
 import ExportButton from "@/components/ExportButton";
 import FilterBar, { FilterType } from "@/components/FilterBar";
 import SearchBar from "@/components/SearchBar";
+import { supabase } from "@/lib/supabaseClient";
 
 type KindergartenRecord = {
   id: string;
@@ -14,6 +15,16 @@ type KindergartenRecord = {
   emailSent: boolean;
   replied: boolean;
   positiveResponse: boolean;
+};
+
+type KindergartenRow = {
+  id: string;
+  email: string;
+  name: string;
+  city: string | null;
+  email_sent: boolean;
+  replied: boolean;
+  positive_response: boolean;
 };
 
 export default function HomePage() {
@@ -29,23 +40,77 @@ export default function HomePage() {
   const [editEmail, setEditEmail] = useState("");
   const [editName, setEditName] = useState("");
   const [editCity, setEditCity] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isMutating, setIsMutating] = useState(false);
+  const [errorToast, setErrorToast] = useState<string | null>(null);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+
+  const showError = useCallback((message: string) => {
+    setErrorToast(message);
+    setTimeout(() => setErrorToast(null), 3000);
+  }, []);
+
+  const getSupabaseErrorMessage = (error: { message: string } | null) => {
+    if (!error) return "Neočekivana greška.";
+    if (error.message.toLowerCase().includes("city")) {
+      return "Nedostaje kolona 'city' u bazi. Pokreni SQL migraciju za city kolonu.";
+    }
+    return error.message;
+  };
 
   const loadRows = useCallback(async () => {
-    const response = await fetch("/api/kindergartens", { cache: "no-store" });
-    if (!response.ok) return;
-    const data = (await response.json()) as KindergartenRecord[];
-    setRows(data);
-  }, []);
+    if (!hasLoadedOnce) {
+      setIsLoading(true);
+    }
+    const { data, error } = await supabase
+      .from("kindergartens")
+      .select("*")
+      .order("created_at", { ascending: true });
+
+    if (error || !data) {
+      showError("Greška pri učitavanju podataka.");
+      setIsLoading(false);
+      return;
+    }
+
+    const mapped = (data as KindergartenRow[]).map((row) => ({
+      id: row.id,
+      email: row.email,
+      kindergartenName: row.name,
+      city: row.city ?? "",
+      emailSent: row.email_sent,
+      replied: row.replied,
+      positiveResponse: row.positive_response
+    }));
+
+    setRows(mapped);
+    setHasLoadedOnce(true);
+    setIsLoading(false);
+  }, [hasLoadedOnce, showError]);
 
   useEffect(() => {
     void loadRows();
   }, [loadRows]);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      void loadRows();
-    }, 5000);
-    return () => clearInterval(interval);
+    const channel = supabase
+      .channel("kindergartens-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "kindergartens"
+        },
+        () => {
+          void loadRows();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
   }, [loadRows]);
 
   useEffect(() => {
@@ -80,6 +145,8 @@ export default function HomePage() {
       switch (activeFilter) {
         case "emailSent":
           return row.emailSent;
+        case "emailNotSent":
+          return !row.emailSent;
         case "replied":
           return row.replied;
         case "positive":
@@ -94,56 +161,72 @@ export default function HomePage() {
 
   const addKindergarten = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isMutating) return;
     const trimmedEmail = email.trim();
     const trimmedName = kindergartenName.trim();
     const trimmedCity = city.trim();
     if (!trimmedEmail || !trimmedName || !trimmedCity) return;
 
-    const response = await fetch("/api/kindergartens", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: trimmedEmail,
-        kindergartenName: trimmedName,
-        city: trimmedCity
-      })
+    setIsMutating(true);
+    const { error } = await supabase.from("kindergartens").insert({
+      name: trimmedName,
+      email: trimmedEmail,
+      city: trimmedCity
     });
-    if (!response.ok) return;
-    const updated = (await response.json()) as KindergartenRecord[];
-    setRows(updated);
+    if (error) {
+      showError(getSupabaseErrorMessage(error));
+      setIsMutating(false);
+      return;
+    }
+    await loadRows();
     setEmail("");
     setKindergartenName("");
     setCity("");
     setShowForm(false);
+    setIsMutating(false);
   };
 
   const toggleField = async (
     id: string,
     field: "emailSent" | "replied" | "positiveResponse"
   ) => {
+    if (isMutating) return;
     const target = rows.find((row) => row.id === id);
     if (!target) return;
 
-    const response = await fetch(`/api/kindergartens/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        field,
-        value: !target[field]
-      })
-    });
-    if (!response.ok) return;
-    const updated = (await response.json()) as KindergartenRecord[];
-    setRows(updated);
+    const dbField =
+      field === "emailSent"
+        ? "email_sent"
+        : field === "positiveResponse"
+        ? "positive_response"
+        : "replied";
+
+    setIsMutating(true);
+    const { error } = await supabase
+      .from("kindergartens")
+      .update({ [dbField]: !target[field] })
+      .eq("id", id);
+
+    if (error) {
+      showError(getSupabaseErrorMessage(error));
+      setIsMutating(false);
+      return;
+    }
+    await loadRows();
+    setIsMutating(false);
   };
 
   const deleteRow = async (id: string) => {
-    const response = await fetch(`/api/kindergartens/${id}`, {
-      method: "DELETE"
-    });
-    if (!response.ok) return;
-    const updated = (await response.json()) as KindergartenRecord[];
-    setRows(updated);
+    if (isMutating) return;
+    setIsMutating(true);
+    const { error } = await supabase.from("kindergartens").delete().eq("id", id);
+    if (error) {
+      showError(getSupabaseErrorMessage(error));
+      setIsMutating(false);
+      return;
+    }
+    await loadRows();
+    setIsMutating(false);
   };
 
   const startEdit = (row: KindergartenRecord) => {
@@ -161,24 +244,30 @@ export default function HomePage() {
   };
 
   const saveEdit = async (id: string) => {
+    if (isMutating) return;
     const emailValue = editEmail.trim();
     const nameValue = editName.trim();
     const cityValue = editCity.trim();
     if (!emailValue || !nameValue || !cityValue) return;
 
-    const response = await fetch(`/api/kindergartens/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    setIsMutating(true);
+    const { error } = await supabase
+      .from("kindergartens")
+      .update({
         email: emailValue,
-        kindergartenName: nameValue,
+        name: nameValue,
         city: cityValue
       })
-    });
-    if (!response.ok) return;
-    const updated = (await response.json()) as KindergartenRecord[];
-    setRows(updated);
+      .eq("id", id);
+
+    if (error) {
+      showError(getSupabaseErrorMessage(error));
+      setIsMutating(false);
+      return;
+    }
+    await loadRows();
     cancelEdit();
+    setIsMutating(false);
   };
 
   const getStatusBadge = (row: KindergartenRecord) => {
@@ -207,11 +296,11 @@ export default function HomePage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 px-4 py-8">
-      <div className="mx-auto max-w-5xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+    <main className="min-h-screen w-full max-w-full overflow-x-hidden bg-gray-50 px-4 py-8 md:px-6">
+      <div className="mx-auto w-full max-w-6xl min-w-0 overflow-x-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
         <section className="border-b border-gray-100 px-4 py-4">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-            <div>
+          <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div className="min-w-0">
               <h1 className="text-xl font-semibold text-gray-900">
                 Tracker komunikacije sa vrtićima
               </h1>
@@ -222,13 +311,14 @@ export default function HomePage() {
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex min-w-0 w-full flex-wrap items-center gap-2 xl:w-auto">
               <SearchBar value={searchInput} onChange={setSearchInput} />
               <FilterBar activeFilter={activeFilter} onChange={setActiveFilter} />
               <button
                 type="button"
                 className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white transition-all duration-150 hover:bg-blue-700 active:scale-95"
                 onClick={() => setShowForm((prev) => !prev)}
+                disabled={isMutating}
               >
                 <Plus className="h-4 w-4" />
                 Dodaj vrtić
@@ -242,7 +332,7 @@ export default function HomePage() {
           <section className="border-b border-gray-100 px-4 py-3">
             <form
               onSubmit={addKindergarten}
-              className="grid gap-2 md:grid-cols-[1fr_1fr_1fr_auto]"
+              className="grid min-w-0 gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]"
             >
               <input
                 type="email"
@@ -251,6 +341,7 @@ export default function HomePage() {
                 placeholder="Email vrtića"
                 className="rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 outline-none transition-all duration-150 placeholder:text-gray-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20"
                 required
+                disabled={isMutating}
               />
               <input
                 type="text"
@@ -259,6 +350,7 @@ export default function HomePage() {
                 placeholder="Ime vrtića"
                 className="rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 outline-none transition-all duration-150 placeholder:text-gray-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20"
                 required
+                disabled={isMutating}
               />
               <input
                 type="text"
@@ -267,10 +359,12 @@ export default function HomePage() {
                 placeholder="Grad"
                 className="rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 outline-none transition-all duration-150 placeholder:text-gray-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20"
                 required
+                disabled={isMutating}
               />
               <button
                 type="submit"
                 className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-all duration-150 hover:bg-blue-700 active:scale-95"
+                disabled={isMutating}
               >
                 Spremi
               </button>
@@ -278,8 +372,13 @@ export default function HomePage() {
           </section>
         )}
 
-        <section className="max-h-[65vh] overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgb(209_213_219)_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 hover:[&::-webkit-scrollbar-thumb]:bg-gray-400">
-          {filteredRows.length === 0 ? (
+        <section className="max-h-[65vh] min-w-0 overflow-y-auto overflow-x-hidden [scrollbar-width:thin] [scrollbar-color:rgb(209_213_219)_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 hover:[&::-webkit-scrollbar-thumb]:bg-gray-400">
+          {isLoading ? (
+            <div className="flex min-h-60 flex-col items-center justify-center gap-3 px-4 text-center">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
+              <p className="text-sm text-gray-600">Učitavanje podataka...</p>
+            </div>
+          ) : filteredRows.length === 0 ? (
             <div className="flex min-h-60 flex-col items-center justify-center px-4 text-center">
               <div className="text-3xl">✅</div>
               <p className="mt-3 text-base font-medium text-gray-700">
@@ -290,18 +389,30 @@ export default function HomePage() {
               </p>
             </div>
           ) : (
-            <div>
+            <div className="min-w-0">
+              <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto_auto] items-center gap-3 border-b border-gray-100 px-4 py-2">
+                <div />
+                <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                  Poslano
+                </span>
+                <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                  Odgovor
+                </span>
+                <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                  Anketirano
+                </span>
+              </div>
               {filteredRows.map((row) => {
                 const statusBadge = getStatusBadge(row);
                 return (
                   <article
                     key={row.id}
-                    className="group flex min-h-14 flex-col gap-3 border-b border-gray-100 px-4 py-3 transition-all duration-150 hover:translate-x-[2px] hover:bg-gray-50 sm:flex-row sm:items-center"
+                    className="group min-w-0 border-b border-gray-100 px-4 py-3 transition-all duration-150 hover:translate-x-[2px] hover:bg-gray-50"
                   >
-
-                    <div className="min-w-0 flex-1">
+                    <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto] sm:items-center">
+                      <div className="min-w-0">
                       {editingId === row.id ? (
-                        <div className="grid gap-2 sm:grid-cols-3">
+                        <div className="grid min-w-0 gap-2 sm:grid-cols-3">
                           <input
                             value={editName}
                             onChange={(event) => setEditName(event.target.value)}
@@ -345,61 +456,63 @@ export default function HomePage() {
                               }`}
                             />
                             <p
-                              className={`text-sm break-all whitespace-normal ${
+                              className={`min-w-0 truncate text-sm ${
                                 row.positiveResponse
                                   ? "text-gray-400 line-through"
                                   : "text-gray-500"
                               }`}
+                              title={`${row.email} · ${row.city}`}
                             >
                               {row.email} · {row.city}
                             </p>
                           </div>
                         </>
                       )}
-                    </div>
-
-                    <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
+                      </div>
                       <input
                         type="checkbox"
                         checked={row.emailSent}
                         onChange={() => toggleField(row.id, "emailSent")}
-                        className="h-5 w-5 cursor-pointer accent-green-500 transition-transform duration-150 [&:checked]:scale-110"
+                        className="h-5 w-5 justify-self-start cursor-pointer accent-green-500 transition-transform duration-150 sm:justify-self-center [&:checked]:scale-110"
+                        disabled={isMutating}
                       />
                       <input
                         type="checkbox"
                         checked={row.replied}
                         onChange={() => toggleField(row.id, "replied")}
-                        className="h-5 w-5 cursor-pointer accent-green-500 transition-transform duration-150 [&:checked]:scale-110"
+                        className="h-5 w-5 justify-self-start cursor-pointer accent-green-500 transition-transform duration-150 sm:justify-self-center [&:checked]:scale-110"
+                        disabled={isMutating}
                       />
                       <input
                         type="checkbox"
                         checked={row.positiveResponse}
                         onChange={() => toggleField(row.id, "positiveResponse")}
-                        className="h-5 w-5 cursor-pointer accent-green-500 transition-transform duration-150 [&:checked]:scale-110"
+                        className="h-5 w-5 justify-self-start cursor-pointer accent-green-500 transition-transform duration-150 sm:justify-self-center [&:checked]:scale-110"
+                        disabled={isMutating}
                       />
                     </div>
 
-                    <span
-                      className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        statusBadge.className
-                      }`}
-                    >
-                      {row.positiveResponse
-                        ? "Završeno"
-                        : row.replied
-                        ? "Odgovor"
-                        : row.emailSent
-                        ? "Poslano"
-                        : "Novo"}
-                    </span>
-
-                    <div className="flex items-center gap-1">
+                    <div className="mt-2 flex min-w-0 flex-wrap items-center gap-1 sm:justify-end">
+                      <span
+                        className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          statusBadge.className
+                        }`}
+                      >
+                        {row.positiveResponse
+                          ? "Završeno"
+                          : row.replied
+                          ? "Odgovor"
+                          : row.emailSent
+                          ? "Poslano"
+                          : "Novo"}
+                      </span>
                       {editingId === row.id ? (
                         <>
                           <button
                             type="button"
                             onClick={() => saveEdit(row.id)}
                             className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-emerald-600 transition-all duration-150 hover:bg-emerald-50 active:scale-95"
+                            disabled={isMutating}
                           >
                             <Save className="h-3.5 w-3.5" />
                             Save
@@ -408,6 +521,7 @@ export default function HomePage() {
                             type="button"
                             onClick={cancelEdit}
                             className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-gray-500 transition-all duration-150 hover:bg-gray-100 hover:text-gray-700 active:scale-95"
+                            disabled={isMutating}
                           >
                             <X className="h-3.5 w-3.5" />
                             Cancel
@@ -419,6 +533,7 @@ export default function HomePage() {
                             type="button"
                             onClick={() => startEdit(row)}
                             className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-blue-600 transition-all duration-150 hover:bg-blue-50 active:scale-95"
+                            disabled={isMutating}
                           >
                             <Pencil className="h-3.5 w-3.5" />
                             Edit
@@ -427,6 +542,7 @@ export default function HomePage() {
                             type="button"
                             onClick={() => deleteRow(row.id)}
                             className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-gray-500 transition-all duration-150 hover:bg-gray-100 hover:text-gray-700 active:scale-95"
+                            disabled={isMutating}
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                             Obrisi
@@ -441,6 +557,11 @@ export default function HomePage() {
           )}
         </section>
       </div>
+      {errorToast && (
+        <div className="fixed bottom-4 right-4 z-50 rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white shadow-lg">
+          {errorToast}
+        </div>
+      )}
 
     </main>
   );
