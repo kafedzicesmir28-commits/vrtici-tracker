@@ -43,11 +43,17 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isMutating, setIsMutating] = useState(false);
   const [errorToast, setErrorToast] = useState<string | null>(null);
+  const [successToast, setSuccessToast] = useState<string | null>(null);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
 
   const showError = useCallback((message: string) => {
     setErrorToast(message);
     setTimeout(() => setErrorToast(null), 3000);
+  }, []);
+
+  const showSuccess = useCallback((message: string) => {
+    setSuccessToast(message);
+    setTimeout(() => setSuccessToast(null), 2000);
   }, []);
 
   const getSupabaseErrorMessage = (error: { message: string } | null) => {
@@ -56,6 +62,15 @@ export default function HomePage() {
       return "Nedostaje kolona 'city' u bazi. Pokreni SQL migraciju za city kolonu.";
     }
     return error.message;
+  };
+
+  const copyEmail = async (emailToCopy: string) => {
+    try {
+      await navigator.clipboard.writeText(emailToCopy);
+      showSuccess("Email kopiran.");
+    } catch {
+      showError("Kopiranje nije uspjelo.");
+    }
   };
 
   const loadRows = useCallback(async () => {
@@ -393,18 +408,6 @@ export default function HomePage() {
             </div>
           ) : (
             <div className="min-w-0">
-              <div className={`${checkboxGridClass} border-b border-gray-100 px-4 py-3`}>
-                <div />
-                <span className="text-center text-xs font-medium uppercase tracking-wide text-gray-500">
-                  Poslano
-                </span>
-                <span className="text-center text-xs font-medium uppercase tracking-wide text-gray-500">
-                  Odgovor
-                </span>
-                <span className="text-center text-xs font-medium uppercase tracking-wide text-gray-500">
-                  Anketirano
-                </span>
-              </div>
               {filteredRows.map((row) => {
                 const statusBadge = getStatusBadge(row);
                 return (
@@ -412,43 +415,40 @@ export default function HomePage() {
                     key={row.id}
                     className="group min-w-0 border-b border-gray-100 px-4 py-3 transition-all duration-150 hover:translate-x-[2px] hover:bg-gray-50"
                   >
-                    <div className={checkboxGridClass}>
-                      <div className="min-w-0">
-                      {editingId === row.id ? (
-                        <div className="grid min-w-0 gap-2 sm:grid-cols-3">
-                          <input
-                            value={editName}
-                            onChange={(event) => setEditName(event.target.value)}
-                            placeholder="Ime vrtića"
-                            className="rounded-md border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20"
-                          />
-                          <input
-                            value={editEmail}
-                            onChange={(event) => setEditEmail(event.target.value)}
-                            placeholder="Email"
-                            className="rounded-md border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20"
-                          />
-                          <input
-                            value={editCity}
-                            onChange={(event) => setEditCity(event.target.value)}
-                            placeholder="Grad"
-                            className="rounded-md border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20"
-                          />
-                        </div>
-                      ) : (
-                        <>
-                          <p
-                            className={`whitespace-normal break-words text-sm font-semibold ${
-                              row.positiveResponse
-                                ? "text-gray-400 line-through"
-                                : "text-gray-900"
-                            }`}
-                          >
-                            {row.kindergartenName}
-                          </p>
-                          <div className="flex items-center gap-2">
-                            <div
-                              className={`h-5 w-1 shrink-0 rounded-full ${
+                    <div className="flex min-w-0 gap-3">
+                      <div className="min-w-0 flex-1">
+                        {editingId === row.id ? (
+                          <div className="grid min-w-0 gap-2 sm:grid-cols-3">
+                            <input
+                              value={editName}
+                              onChange={(event) => setEditName(event.target.value)}
+                              placeholder="Ime vrtića"
+                              className="rounded-md border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20"
+                            />
+                            <input
+                              value={editEmail}
+                              onChange={(event) => setEditEmail(event.target.value)}
+                              placeholder="Email"
+                              className="rounded-md border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20"
+                            />
+                            <input
+                              value={editCity}
+                              onChange={(event) => setEditCity(event.target.value)}
+                              placeholder="Grad"
+                              className="rounded-md border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20"
+                            />
+                          </div>
+                        ) : (
+                          <>
+                            <p
+                              className={`whitespace-normal break-words text-sm font-semibold ${
+                                row.positiveResponse
+                                  ? "text-gray-400 line-through"
+                                  : "text-gray-900"
+                              }`}
+                            >
+                            <span
+                              className={`mr-2 inline-block h-4 w-1 align-middle rounded-full ${
                                 row.positiveResponse
                                   ? "bg-green-500"
                                   : row.replied
@@ -458,105 +458,134 @@ export default function HomePage() {
                                   : "bg-gray-300"
                               }`}
                             />
-                            <p
-                              className={`min-w-0 whitespace-normal break-all text-sm ${
-                                row.positiveResponse
-                                  ? "text-gray-400 line-through"
-                                  : "text-gray-500"
-                              }`}
-                            >
-                              {row.email} · {row.city}
+                            {row.kindergartenName}
                             </p>
-                          </div>
-                        </>
-                      )}
+                            <div className="mt-1 flex items-center gap-2">
+                              <p
+                                className={`min-w-0 truncate text-[13px] ${
+                                  row.positiveResponse
+                                    ? "text-gray-400 line-through"
+                                    : "text-gray-500"
+                                }`}
+                                title={row.email}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => copyEmail(row.email)}
+                                  className="text-left underline decoration-dotted underline-offset-2 transition-colors duration-150 hover:text-blue-600"
+                                  title="Klikni za kopiranje emaila"
+                                >
+                                  {row.email}
+                                </button>
+                              </p>
+                            </div>
+                            <div className="mt-2 flex items-center gap-2">
+                              <span
+                                className={`inline-flex w-fit rounded-full px-2.5 py-0.5 text-xs font-medium ${statusBadge.className}`}
+                              >
+                                {row.positiveResponse
+                                  ? "Završeno"
+                                  : row.replied
+                                  ? "Odgovor"
+                                  : row.emailSent
+                                  ? "Poslano"
+                                  : "Novo"}
+                              </span>
+                              <span className="text-xs text-gray-500">• {row.city}</span>
+                            </div>
+                          </>
+                        )}
                       </div>
-                      <div className="flex items-center justify-center">
-                        <input
-                          type="checkbox"
-                          checked={row.emailSent}
-                          onChange={() => toggleField(row.id, "emailSent")}
-                          className="h-5 w-5 cursor-pointer accent-green-500 transition-transform duration-150 [&:checked]:scale-110"
-                          disabled={isMutating}
-                        />
-                      </div>
-                      <div className="flex items-center justify-center">
-                        <input
-                          type="checkbox"
-                          checked={row.replied}
-                          onChange={() => toggleField(row.id, "replied")}
-                          className="h-5 w-5 cursor-pointer accent-green-500 transition-transform duration-150 [&:checked]:scale-110"
-                          disabled={isMutating}
-                        />
-                      </div>
-                      <div className="flex items-center justify-center">
-                        <input
-                          type="checkbox"
-                          checked={row.positiveResponse}
-                          onChange={() => toggleField(row.id, "positiveResponse")}
-                          className="h-5 w-5 cursor-pointer accent-green-500 transition-transform duration-150 [&:checked]:scale-110"
-                          disabled={isMutating}
-                        />
-                      </div>
-                    </div>
 
-                    <div className="mt-2 flex min-w-0 flex-wrap items-center gap-1 sm:justify-end">
-                      <span
-                        className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          statusBadge.className
-                        }`}
-                      >
-                        {row.positiveResponse
-                          ? "Završeno"
-                          : row.replied
-                          ? "Odgovor"
-                          : row.emailSent
-                          ? "Poslano"
-                          : "Novo"}
-                      </span>
-                      {editingId === row.id ? (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => saveEdit(row.id)}
-                            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-emerald-600 transition-all duration-150 hover:bg-emerald-50 active:scale-95"
-                            disabled={isMutating}
-                          >
-                            <Save className="h-3.5 w-3.5" />
-                            Save
-                          </button>
-                          <button
-                            type="button"
-                            onClick={cancelEdit}
-                            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-gray-500 transition-all duration-150 hover:bg-gray-100 hover:text-gray-700 active:scale-95"
-                            disabled={isMutating}
-                          >
-                            <X className="h-3.5 w-3.5" />
-                            Cancel
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => startEdit(row)}
-                            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-blue-600 transition-all duration-150 hover:bg-blue-50 active:scale-95"
-                            disabled={isMutating}
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => deleteRow(row.id)}
-                            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-gray-500 transition-all duration-150 hover:bg-gray-100 hover:text-gray-700 active:scale-95"
-                            disabled={isMutating}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                            Obrisi
-                          </button>
-                        </>
-                      )}
+                      <div className="mt-2 flex w-[44%] min-w-[170px] max-w-[260px] flex-col gap-1">
+                        <div className="flex items-center justify-end gap-1">
+                          {editingId === row.id ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => saveEdit(row.id)}
+                                className="inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-[10px] font-medium text-emerald-600 transition-all duration-150 hover:bg-emerald-50 active:scale-95"
+                                disabled={isMutating}
+                              >
+                                <Save className="h-3 w-3" />
+                                Save
+                              </button>
+                              <button
+                                type="button"
+                                onClick={cancelEdit}
+                                className="inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-[10px] font-medium text-gray-500 transition-all duration-150 hover:bg-gray-100 hover:text-gray-700 active:scale-95"
+                                disabled={isMutating}
+                              >
+                                <X className="h-3 w-3" />
+                                Cancel
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => startEdit(row)}
+                                className="inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-[10px] font-medium text-blue-600 transition-all duration-150 hover:bg-blue-50 active:scale-95"
+                                disabled={isMutating}
+                              >
+                                <Pencil className="h-3 w-3" />
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => deleteRow(row.id)}
+                                className="inline-flex items-center gap-1 rounded-lg px-1.5 py-1 text-[10px] font-medium text-gray-500 transition-all duration-150 hover:bg-gray-100 hover:text-gray-700 active:scale-95"
+                                disabled={isMutating}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                                Obrisi
+                              </button>
+                            </>
+                          )}
+                        </div>
+
+                        <div className="grid w-full grid-cols-3 gap-x-1">
+                          <span className="text-center text-[9px] font-medium uppercase tracking-wide text-gray-500">
+                            Poslano
+                          </span>
+                          <span className="text-center text-[9px] font-medium uppercase tracking-wide text-gray-500">
+                            Odgovor
+                          </span>
+                          <span className="text-center text-[9px] font-medium uppercase tracking-wide text-gray-500">
+                            Anketirano
+                          </span>
+                        </div>
+
+                        <div className="mt-2 grid grid-cols-3 gap-x-1">
+                          <div className="flex items-center justify-center">
+                            <input
+                              type="checkbox"
+                              checked={row.emailSent}
+                              onChange={() => toggleField(row.id, "emailSent")}
+                              className="h-5 w-5 cursor-pointer accent-green-500 transition-transform duration-150 [&:checked]:scale-110"
+                              disabled={isMutating}
+                            />
+                          </div>
+                          <div className="flex items-center justify-center">
+                            <input
+                              type="checkbox"
+                              checked={row.replied}
+                              onChange={() => toggleField(row.id, "replied")}
+                              className="h-5 w-5 cursor-pointer accent-green-500 transition-transform duration-150 [&:checked]:scale-110"
+                              disabled={isMutating}
+                            />
+                          </div>
+                          <div className="flex items-center justify-center">
+                            <input
+                              type="checkbox"
+                              checked={row.positiveResponse}
+                              onChange={() => toggleField(row.id, "positiveResponse")}
+                              className="h-5 w-5 cursor-pointer accent-green-500 transition-transform duration-150 [&:checked]:scale-110"
+                              disabled={isMutating}
+                            />
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </article>
                 );
@@ -568,6 +597,11 @@ export default function HomePage() {
       {errorToast && (
         <div className="fixed bottom-4 right-4 z-50 rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white shadow-lg">
           {errorToast}
+        </div>
+      )}
+      {successToast && (
+        <div className="fixed bottom-16 right-4 z-50 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-lg">
+          {successToast}
         </div>
       )}
 
